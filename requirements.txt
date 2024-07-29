@@ -1,0 +1,4 @@
+gymnasium[atari]
+numpy
+torch
+requests

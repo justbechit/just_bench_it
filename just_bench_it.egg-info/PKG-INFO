@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: just-bench-it
+Version: 0.1.0
+Summary: A simple benchmarking tool for RL algorithms on Atari games
+Home-page: https://github.com/yourusername/just_bench_it
+Author: Your Name
+Author-email: your.email@example.com
+License: UNKNOWN
+Description: dummy
+        
+Platform: UNKNOWN
+Description-Content-Type: text/markdown

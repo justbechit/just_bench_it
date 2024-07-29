@@ -1,4 +1,6 @@
 from setuptools import setup, find_packages
+import just_bench_it
+
 
 setup(
     name="just_bench_it",
@@ -9,6 +11,7 @@ setup(
         "numpy",
     ],
     author="Your Name",
+    zip_safe=False,
     author_email="your.email@example.com",
     description="A simple benchmarking tool for RL algorithms on Atari games",
     long_description=open("README.md").read(),

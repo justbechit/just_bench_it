@@ -7,7 +7,7 @@ from functools import wraps
 from just_bench_it.envs import get_env, ENVS
 
 GITHUB_REPO_OWNER = "justbechit"
-GITHUB_REPO_NAME = "rl_ladder"
+GITHUB_REPO_NAME = "rl_ladder.github.io"
 GITHUB_CLIENT_ID = "Ov23li6k9dJ9Ws9bsWy0"
 GITHUB_CLIENT_SECRET = "5c8ab1c55c159ecb683d7fbbfe1efe657dc1d536"
 

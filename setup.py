@@ -1,5 +1,4 @@
 from setuptools import setup, find_packages
-import just_bench_it
 
 # Read requirements from file
 with open('just_bench_it/requirements.txt') as f:

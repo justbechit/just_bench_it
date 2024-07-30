@@ -1,20 +1,20 @@
 from setuptools import setup, find_packages
 import just_bench_it
 
+# Read requirements from file
+with open('just_bench_it/requirements.txt') as f:
+    requirements = f.read().splitlines()
 
 setup(
     name="just_bench_it",
     version="0.1.0",
     packages=find_packages(),
-    install_requires=[
-        "gymnasium[atari]",
-        "numpy",
-    ],
-    author="Your Name",
+    install_requires=requirements,
+    author="stone91",
     zip_safe=False,
-    author_email="your.email@example.com",
+    author_email="370025263@qq.com",
     description="A simple benchmarking tool for RL algorithms on Atari games",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/just_bench_it",
+    url="https://github.com/justbechit/just_bench_it",
 )

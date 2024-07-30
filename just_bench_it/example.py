@@ -40,7 +40,7 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.buffer)
 
-@benchmark(pretrained=False, train_episodes=1000, eval_episodes=100)
+@benchmark(pretrained=False, train_episodes=1, eval_episodes=1)
 class DQNAgent:
     def __init__(self, learning_rate=1e-3, gamma=0.99, epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.01, batch_size=32, buffer_size=10000):
         self.learning_rate = learning_rate

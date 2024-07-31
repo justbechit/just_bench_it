@@ -1,16 +1,21 @@
 #!/bin/bash
 
-# 安装 versioneer 和 bump2version
-pip3 install versioneer bump2version
+# 安装 bump2version 和 twine
+pip3 install --user bump2version twine
 
-# 初始化 versioneer
-versioneer install
+# 获取当前版本号
+CURRENT_VERSION=$(python3 setup.py --version)
+
+# 计算目标版本号
+PATCH_TARGET_VERSION=$(python3 -m bumpversion --dry-run --list patch --allow-dirty | grep new_version | sed -r s,"^.*=",,)
+MINOR_TARGET_VERSION=$(python3 -m bumpversion --dry-run --list minor --allow-dirty | grep new_version | sed -r s,"^.*=",,)
+MAJOR_TARGET_VERSION=$(python3 -m bumpversion --dry-run --list major --allow-dirty | grep new_version | sed -r s,"^.*=",,)
 
 # 获取用户输入
 echo "请选择版本更新类型:"
-echo "1. patch"
-echo "2. minor"
-echo "3. major"
+echo "1. patch  当前版本: $CURRENT_VERSION ---> 目标版本: $PATCH_TARGET_VERSION"
+echo "2. minor  当前版本: $CURRENT_VERSION ---> 目标版本: $MINOR_TARGET_VERSION"
+echo "3. major  当前版本: $CURRENT_VERSION ---> 目标版本: $MAJOR_TARGET_VERSION"
 read -p "输入数字选择 (1, 2, 3): " choice
 
 case $choice in
@@ -30,7 +35,7 @@ case $choice in
 esac
 
 # 更新版本号
-bump2version $VERSION_TYPE
+python3 -m bumpversion $VERSION_TYPE --allow-dirty
 
 # 获取新的版本号
 NEW_VERSION=$(python3 setup.py --version)

@@ -2,8 +2,17 @@
 # Just Bench It: RL Algorithm Benchmarking Tool
 
 这个项目提供了一个简单的工具，用于对强化学习（RL）算法在Atari游戏上进行基准测试。
+WEBSITE: https://justbechit.github.io/rl_ladder/
 
 ## 安装
+## PYPI
+
+1. 安装：
+   ```
+   pip install just-bench-it
+   ```
+
+### Build from source
 
 1. 克隆这个仓库：
    ```

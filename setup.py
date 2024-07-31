@@ -1,4 +1,3 @@
-import versioneer
 from setuptools import setup, find_packages
 
 # Read requirements from file
@@ -7,8 +6,7 @@ with open('just_bench_it/requirements.txt') as f:
 
 setup(
     name="just_bench_it",
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
+    version="0.1.1",  # 初始版本号
     packages=find_packages(),
     install_requires=requirements,
     author="stone91",

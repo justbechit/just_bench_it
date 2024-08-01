@@ -1,3 +1,5 @@
+build/
+dist/
 .ipynb_checkpoints/
 just_bench_it/.ipynb_checkpoints/
 just_bench_it/__pycache__/

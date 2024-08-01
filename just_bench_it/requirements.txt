@@ -1,5 +1,8 @@
 autorom[accept-rom-license]
+psutil
+dill
 tqdm
+colorama
 gymnasium[atari]
 numpy
 torch

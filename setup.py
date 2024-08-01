@@ -6,7 +6,7 @@ with open('just_bench_it/requirements.txt') as f:
 
 setup(
     name="just_bench_it",
-    version="0.1.4",  # 初始版本号
+    version="0.1.5",  # 初始版本号
     packages=find_packages(),
     install_requires=requirements,
     author="stone91",

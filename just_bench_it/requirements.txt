@@ -1,4 +1,5 @@
 autorom[accept-rom-license]
+tqdm
 gymnasium[atari]
 numpy
 torch

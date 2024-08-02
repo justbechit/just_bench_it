@@ -6,19 +6,10 @@ import time
 from functools import wraps
 from just_bench_it.envs import get_env, ENVS
 from colorama import init, Fore, Style
-import multiprocessing as mp
 import psutil
-import signal
 import sys
 import random
 import warnings
-import dill
-import multiprocessing.reduction
-from concurrent.futures import ProcessPoolExecutor
-
-# 使用dill替换pickle
-multiprocessing.reduction.ForkingPickler.dumps = dill.dumps
-multiprocessing.reduction.ForkingPickler.loads = dill.loads
 
 # 忽略 urllib3 的警告
 warnings.filterwarnings("ignore", category=UserWarning, module="urllib3")
@@ -35,17 +26,83 @@ MIN_EVAL_EPISODES = 20
 # 定义一些颜色
 COLORS = [Fore.RED, Fore.GREEN, Fore.YELLOW, Fore.BLUE, Fore.MAGENTA, Fore.CYAN]
 
-# ... [其他函数保持不变] ...
+def get_device_code():
+    url = "https://github.com/login/device/code"
+    headers = {"Accept": "application/json"}
+    data = {
+        "client_id": GITHUB_CLIENT_ID,
+        "scope": "repo"
+    }
+    response = requests.post(url, headers=headers, data=data)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Failed to obtain device code: {response.content}")
+        return None
 
-def benchmark(pretrained=False, train_episodes=1000, eval_episodes=100, comment=None, parallel_envs=1):
+def poll_for_token(device_code, interval):
+    url = "https://github.com/login/oauth/access_token"
+    headers = {"Accept": "application/json"}
+    data = {
+        "client_id": GITHUB_CLIENT_ID,
+        "device_code": device_code,
+        "grant_type": "urn:ietf:params:oauth:grant-type:device_code"
+    }
+    while True:
+        response = requests.post(url, headers=headers, data=data)
+        if response.status_code == 200:
+            response_data = response.json()
+            if "access_token" in response_data:
+                return response_data.get("access_token")
+            elif "error" in response_data and response_data["error"] == "authorization_pending":
+                print("Authorization pending. Waiting for user to authorize...")
+                time.sleep(interval)
+            else:
+                print(f"Error in response: {response_data}")
+                break
+        else:
+            print(f"Failed to poll for token: {response.content}")
+            break
+    return None
+
+def get_github_token():
+    device_data = get_device_code()
+    if not device_data:
+        return None
+    print(f"Please go to {device_data['verification_uri']} and enter the code: {device_data['user_code']}")
+    return poll_for_token(device_data["device_code"], device_data["interval"])
+
+def create_github_issue(title, body, labels=None):
+    github_token = get_github_token()
+    if not github_token:
+        print("Failed to obtain GitHub token. Skipping issue creation.")
+        return None
+    url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues"
+    headers = {
+        "Authorization": f"token {github_token}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    data = {
+        "title": title,
+        "body": body,
+        "labels": labels or []
+    }
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    if response.status_code == 201:
+        print("Issue created successfully")
+        return response.json()
+    else:
+        print(f"Failed to create issue: {response.content}")
+        return None
+
+def benchmark(pretrained=False, train_episodes=1000, eval_episodes=100, comment=None):
     def decorator(agent_class):
         @wraps(agent_class)
         def wrapper(*args, **kwargs):
             agent = agent_class(*args, **kwargs)
-            agent.pretrained = pretrained  # 在这里设置 pretrained 属性
+            agent.pretrained = pretrained
 
             def bench(self):
-                nonlocal parallel_envs
                 results = {}
 
                 if eval_episodes < MIN_EVAL_EPISODES:
@@ -53,25 +110,13 @@ def benchmark(pretrained=False, train_episodes=1000, eval_episodes=100, comment=
                     print(f"Results can only be used locally and cannot be submitted for official evaluation.")
                     print(f"Minimum recommended evaluation episodes: {MIN_EVAL_EPISODES}{Style.RESET_ALL}")
 
-                cpu_count = psutil.cpu_count(logical=False)
-                if parallel_envs > cpu_count:
-                    print(f"{Fore.YELLOW}Warning: You've set {parallel_envs} parallel environments, but your machine has {cpu_count} CPU cores.")
-                    print(f"Consider reducing parallel_envs to {cpu_count} or less for optimal performance.{Style.RESET_ALL}")
-                elif parallel_envs < cpu_count:
-                    print(f"{Fore.GREEN}Tip: Your machine has {cpu_count} CPU cores. You might be able to increase parallel_envs to {cpu_count} for faster evaluation.{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}Running benchmark{Style.RESET_ALL}")
 
-                print(f"{Fore.CYAN}Running benchmark with {parallel_envs} parallel environments.{Style.RESET_ALL}")
-
-                tasks = [(self, env_name, train_episodes, eval_episodes) for env_name in ENVS]
-
-                with ProcessPoolExecutor(max_workers=parallel_envs) as executor:
-                    futures = [executor.submit(process_env_wrapper, task) for task in tasks]
-                    
-                    with tqdm(total=len(tasks), desc="Total Progress", position=0) as pbar:
-                        for future in futures:
-                            result = future.result()
-                            results[result[0]] = result[1]
-                            pbar.update(1)
+                with tqdm(total=len(ENVS), desc="Total Progress", position=0) as pbar:
+                    for env_name in ENVS:
+                        env_result = process_env(self, env_name, train_episodes, eval_episodes)
+                        results[env_result[0]] = env_result[1]
+                        pbar.update(1)
 
                 print(f"\n{Fore.CYAN}{'=' * 40}")
                 print(f"{Fore.YELLOW}Benchmark Results for {self.__class__.__name__}")
@@ -111,29 +156,24 @@ def benchmark(pretrained=False, train_episodes=1000, eval_episodes=100, comment=
         return wrapper
     return decorator
 
-def process_env_wrapper(args):
-    agent, env_name, train_episodes, eval_episodes = args
-    return process_env(agent, env_name, train_episodes, eval_episodes)
-
 def process_env(agent, env_name, train_episodes, eval_episodes):
+    # 设置环境信息
     env = get_env(env_name)
     env_info = {
         'name': env_name,
         'action_space': env.action_space,
         'observation_space': env.observation_space,
-        'env': env,
-        'train_episodes': train_episodes,
-        'eval_episodes': eval_episodes
+        'env': env
     }
     agent.set_env_info(env_info)
 
+    # 训练和评估
     color = random.choice(COLORS)
-
     if not agent.pretrained:
         train_agent(agent, env, train_episodes, color, env_name)
-
     score = evaluate_agent(agent, env, eval_episodes, color, env_name)
-    return env_name, float(score)
+
+    return env_name, score
 
 def train_agent(agent, env, episodes, color, env_name, max_steps=100):
     total_reward = 0
@@ -177,7 +217,7 @@ def evaluate_agent(agent, env, episodes, color, env_name, max_steps=10000):
 
 if __name__ == "__main__":
     # 示例用法
-    @benchmark(pretrained=False, train_episodes=1000, eval_episodes=100, parallel_envs=4)
+    @benchmark(pretrained=False, train_episodes=1000, eval_episodes=100)
     class RandomAgent:
         def __init__(self):
             self.pretrained = False

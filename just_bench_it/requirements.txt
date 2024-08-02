@@ -4,6 +4,6 @@ dill
 tqdm
 colorama
 gymnasium[atari]
-numpy
+numpy>2.0.0
 torch
 requests
